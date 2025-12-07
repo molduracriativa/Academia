@@ -114,24 +114,34 @@
             transition:.1s; z-index:10;
         }
 
-        /* 🔵 NOVOS CÍRCULOS LATERAIS */
-        #circlePanel {
+        /* ---------------------------------------
+           ⭐ CÍRCULOS ON/OFF — CSS COMPLETO ⭐
+        ---------------------------------------- */
+        .circle-panel {
             position: absolute;
+            right: 4cm;
             top: 50%;
-            right: 10px;
             transform: translateY(-50%);
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
             z-index: 30;
             pointer-events: auto;
         }
 
-        .circleBtn {
+        .circle-btn {
             width: 30px;
             height: 30px;
+            border-radius: 50%;
+            border: 3px solid white;
+            background: transparent;
             cursor: pointer;
-            pointer-events: auto;
+            transition: .2s;
+        }
+
+        .circle-btn.on {
+            background: white;
+            border-color: white;
         }
     </style>
 </head>
@@ -147,19 +157,20 @@
 
         <img id="molduraImagePreview" src="" />
 
-        <!-- 🔵 PAINEL COM OS 7 CÍRCULOS -->
-        <div id="circlePanel" style="display:none;">
-            <img class="circleBtn" data-id="0" src="circulo_off.png">
-            <img class="circleBtn" data-id="1" src="circulo_off.png">
-            <img class="circleBtn" data-id="2" src="circulo_off.png">
-            <img class="circleBtn" data-id="3" src="circulo_off.png">
-            <img class="circleBtn" data-id="4" src="circulo_off.png">
-            <img class="circleBtn" data-id="5" src="circulo_off.png">
-            <img class="circleBtn" data-id="6" src="circulo_off.png">
-        </div>
-
         <div class="flash" id="flash"></div>
 
+        <!-- ⭐ PAINEL DOS 7 CÍRCULOS -->
+        <div id="circlePanel" class="circle-panel" style="display:none;">
+            <button class="circle-btn" data-id="0"></button>
+            <button class="circle-btn" data-id="1"></button>
+            <button class="circle-btn" data-id="2"></button>
+            <button class="circle-btn" data-id="3"></button>
+            <button class="circle-btn" data-id="4"></button>
+            <button class="circle-btn" data-id="5"></button>
+            <button class="circle-btn" data-id="6"></button>
+        </div>
+
+        <!-- UI ORIGINAL MANTIDA -->
         <div class="ui-layer" id="cameraUI" style="display:none;">
             <div class="top-bar">
                 <button class="btn" id="switchBtn">🔄 Trocar Câmera</button>
@@ -167,8 +178,6 @@
             </div>
 
             <div class="controls-bottom">
-
-                <!-- SÓ 1 MOLDURA -->
                 <div class="frame-selector">
                     <button class="btn btn-frame" id="m1Btn">Foto 1</button>
                 </div>
@@ -182,7 +191,6 @@
                         <div class="stop-icon"></div>
                     </button>
                 </div>
-
             </div>
         </div>
 
@@ -204,22 +212,37 @@
 
 <script>
 
-/* 🔵 ESTADOS DOS 7 CÍRCULOS */
-let circleStates = [0,0,0,0,0,0,0];  
-const circlePanel = document.getElementById("circlePanel");
-const circleBtns = document.querySelectorAll(".circleBtn");
+/* -------------------------
+   ⭐ SISTEMA DOS 7 CÍRCULOS
+------------------------- */
 
-/* Clicar → alternar ON/OFF */
-circleBtns.forEach(btn => {
+let circlesState = [false, false, false, false, false, false, false];
+const circlePanel = document.getElementById("circlePanel");
+
+document.querySelectorAll(".circle-btn").forEach(btn => {
     btn.addEventListener("click", () => {
         const id = Number(btn.dataset.id);
-        circleStates[id] = circleStates[id] ? 0 : 1;
-        btn.src = circleStates[id] ? "circulo_on.png" : "circulo_off.png";
+        circlesState[id] = !circlesState[id];
+        btn.classList.toggle("on", circlesState[id]);
     });
 });
 
 
-// 🔥 SÓ EXISTE 1 MOLDURA
+/* 🔥 MOSTRAR CÍRCULOS SOMENTE COM A MOLDURA 1 */
+function updateCirclesVisibility() {
+    if (currentMolduraKey === "m1") {
+        circlePanel.style.display = "flex";
+    } else {
+        circlePanel.style.display = "none";
+    }
+}
+
+
+
+/* -------------------------
+   ⭐ FUNÇÕES ORIGINAIS — MANTIDAS
+------------------------- */
+
 const MOLDURAS = { 
     'm1': { type:'image', src:'moldura1.png' }
 };
@@ -264,7 +287,10 @@ document.getElementById('startBtn').addEventListener('click', () => initCamera(t
 document.getElementById('switchBtn').addEventListener('click', switchCamera);
 document.getElementById('newPhotoBtn').addEventListener('click', resetCamera);
 
-document.getElementById('m1Btn').addEventListener('click', (e) => setMoldura(e.target, 'm1'));
+document.getElementById('m1Btn').addEventListener('click', (e) => {
+    setMoldura(e.target, 'm1');
+    updateCirclesVisibility();
+});
 
 capturePhotoBtn.addEventListener('click', takePhoto);
 captureVideoBtn.addEventListener('click', () => { isRecording ? stopRecording() : startRecording(); });
@@ -281,13 +307,42 @@ function setMoldura(btn, key) {
     molduraImagePreview.src = moldura.src;
     molduraImagePreview.style.display = 'block';
 
-    /* 🔵 MOSTRAR CÍRCULOS SOMENTE NO m1 */
-    circlePanel.style.display = (key === 'm1') ? "flex" : "none";
+    updateCirclesVisibility();
 }
 
 function getActiveMolduraElement() {
     return molduraImagePreview;
 }
+
+
+/* ---------------------------------------------------
+   ⭐ DESENHAR CÍRCULOS NA FOTO / VÍDEO (CANVAS FINAL)
+---------------------------------------------------- */
+
+function drawCirclesOnCanvas(ctx, w, h) {
+    const offsetX = w - (4 * 37.795);  // 4cm convertidos (~37.795 px por cm)
+    const totalHeight = (30 * 7) + (12 * 6);
+    const startY = (h / 2) - (totalHeight / 2);
+
+    for (let i = 0; i < 7; i++) {
+        const y = startY + i * (30 + 12);
+
+        ctx.beginPath();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = "white";
+        ctx.fillStyle = "white";
+
+        ctx.arc(offsetX + 15, y + 15, 15, 0, Math.PI * 2);
+
+        if (circlesState[i]) ctx.fill();
+        else ctx.stroke();
+    }
+}
+
+
+/* -------------------------------
+   ⭐ FOTO FINAL + VÍDEO FINAL
+------------------------------- */
 
 function takePhoto() {
     flashEffect();
@@ -295,10 +350,9 @@ function takePhoto() {
     canvasFinal.height = 1920;
 
     drawVideoToCanvas(ctxFinal, 1080, 1920, true);
-
     drawImageLayer(ctxFinal, getActiveMolduraElement(), 1080, 1920);
 
-    drawCirclesToCanvas(ctxFinal, 1080, 1920);
+    drawCirclesOnCanvas(ctxFinal, 1080, 1920);  // << CÍRCULOS AQUI
 
     canvasPreview.width = stage.clientWidth;
     canvasPreview.height = stage.clientHeight;
@@ -306,6 +360,7 @@ function takePhoto() {
 
     canvasFinal.toBlob(blob => showResult('image', blob), 'image/png');
 }
+
 
 function startRecording() {
     if (isRecording) return;
@@ -326,10 +381,10 @@ function startRecording() {
 
         drawVideoToCanvas(ctxFinal, 720, 1280, true);
         drawImageLayer(ctxFinal, getActiveMolduraElement(), 720, 1280);
-        drawCirclesToCanvas(ctxFinal, 720, 1280);
+
+        drawCirclesOnCanvas(ctxFinal, 720, 1280);  // << CÍRCULOS NO VÍDEO
 
         updateTimer();
-
         animationFrameId = requestAnimationFrame(loop);
     }
     loop();
@@ -344,6 +399,9 @@ function startRecording() {
     mediaRecorder.onstop = finishVideo;
     mediaRecorder.start();
 }
+
+
+/* -------------------  RESTO DO SEU CÓDIGO ORIGINAL  ---------------------- */
 
 function stopRecording() {
     isRecording = false;
@@ -397,22 +455,6 @@ function drawImageLayer(ctx, img, w, h) {
     ctx.drawImage(img, 0, y, w, targetH);
 }
 
-/* 🔵 DESENHAR CÍRCULOS NO CANVAS (FOTO/VÍDEO) */
-function drawCirclesToCanvas(ctx, w, h) {
-    const spacing = 40;
-    const circleSize = 30;
-
-    const startY = h / 2 - (spacing * 3);
-
-    const x = w - circleSize - 20;
-
-    for (let i = 0; i < 7; i++) {
-        const img = new Image();
-        img.src = circleStates[i] ? "circulo_on.png" : "circulo_off.png";
-        ctx.drawImage(img, x, startY + (i * spacing), circleSize, circleSize);
-    }
-}
-
 function flashEffect() {
     const f = document.getElementById('flash');
     f.style.opacity = '1';
@@ -420,7 +462,6 @@ function flashEffect() {
 }
 
 function showResult(type, blob) {
-
     video.style.display = 'none';
     molduraImagePreview.style.display = 'none';
     circlePanel.style.display = "none";
@@ -469,7 +510,7 @@ function resetCamera() {
     video.style.display = 'block';
     molduraImagePreview.style.display = 'block';
 
-    circlePanel.style.display = "flex";
+    updateCirclesVisibility();
 
     resultUI.style.display = 'none';
     cameraUI.style.display = 'flex';
@@ -505,6 +546,7 @@ function handleStreamSuccess(newStream) {
         cameraUI.style.display = 'flex';
 
         setMoldura(document.getElementById('m1Btn'), 'm1');
+        updateCirclesVisibility();
     };
 }
 
