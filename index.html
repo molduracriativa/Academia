@@ -2,270 +2,140 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-<title>Camera + Moldura</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sistema com Moldura + Círculos</title>
 
 <style>
-    body {
-        margin: 0;
-        background: #000;
-        overflow: hidden;
-    }
+/* ============================
+   SEU CSS ORIGINAL AQUI
+   (NÃO MUDE NADA)
+=============================== */
+  
+/* COLE AQUI SEU CSS ORIGINAL */
 
-    #camera-container {
-        position: relative;
-        width: 100vw;
-        height: 100vh;
-        overflow: hidden;
-    }
 
-    video, canvas, img.moldura {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        object-fit: cover;
-        width: 100%;
-        height: 100%;
-    }
+/* ============================
+   CÍRCULOS (NOVO)
+=============================== */
+#circles-container {
+  position: absolute;
+  top: 50%;
+  right: 130px; /* ~3cm */
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  z-index: 9999;
+}
 
-    /* --- 7 CÍRCULOS LATERAIS --- */
-    #circles-container {
-        position: absolute;
-        right: 150px;        /* afastado ~5cm */
-        top: 50%;
-        transform: translateY(-50%);
-        display: none;       /* só aparece na moldura1 */
-        z-index: 9999;
-    }
+.circle {
+  width: 26px;
+  height: 26px;
+  border: 3px solid white;
+  border-radius: 50%;
+  cursor: pointer;
+  background: transparent;
+  transition: 0.2s;
+}
 
-    .circle {
-        width: 35px;
-        height: 35px;
-        border-radius: 50%;
-        border: 3px solid white;
-        margin: 12px 0;
-        cursor: pointer;
-        background: transparent;
-        transition: 0.2s;
-    }
-
-    .circle.active {
-        background: white;
-    }
-
-    /* Botões já existentes — permaneci tudo igual */
-    #buttons {
-        position: absolute;
-        bottom: 30px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 9999;
-        display: flex;
-        gap: 20px;
-    }
-
-    button {
-        padding: 14px 20px;
-        font-size: 18px;
-        border: none;
-        border-radius: 10px;
-        cursor: pointer;
-    }
+.circle.filled {
+  background: white;
+}
 </style>
 </head>
-
 <body>
 
-<div id="camera-container">
-    <video id="video" autoplay playsinline></video>
-    <canvas id="canvas"></canvas>
+<!-- ============================
+     SEU HTML ORIGINAL COMPLETO
+     SEM ALTERAR NADA
+=============================== -->
 
-    <!-- Moldura aplicada -->
-    <img id="moldura" class="moldura" src="" />
+<!-- COLE AQUI TODO O SEU HTML ORIGINAL -->
 
-    <!-- NOVOS: 7 círculos -->
-    <div id="circles-container"></div>
 
-    <!-- Botões existentes -->
-    <div id="buttons">
-        <button id="fotoBtn">📸 Foto</button>
-        <button id="videoBtn">🎥 Gravar</button>
-        <button id="stopBtn" disabled>⏹️ Parar</button>
-    </div>
+<!-- ============================
+     CÍRCULOS (NOVO)
+=============================== -->
+<div id="circles-container">
+  <div class="circle" data-id="1"></div>
+  <div class="circle" data-id="2"></div>
+  <div class="circle" data-id="3"></div>
+  <div class="circle" data-id="4"></div>
+  <div class="circle" data-id="5"></div>
+  <div class="circle" data-id="6"></div>
+  <div class="circle" data-id="7"></div>
 </div>
 
 <script>
-/* ----------- CÂMERA ORIGINAL ----------- */
-let stream;
-let mediaRecorder;
-let chunks = [];
+/* ============================
+   SEU SCRIPT ORIGINAL AQUI
+=============================== */
 
-async function iniciarCamera() {
-    stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    document.getElementById("video").srcObject = stream;
-}
-iniciarCamera();
+/* COLE AQUI SEU JS ORIGINAL */
 
-/* ----------- MOLDURA ----------- */
-const moldura = document.getElementById("moldura");
-moldura.src = "moldura1.png";   // mantém como estava
 
-/* ----------- CIRCUITOS LATERAIS ----------- */
-const circlesContainer = document.getElementById("circles-container");
-const totalCircles = 7;
-let circleStates = new Array(totalCircles).fill(false); // estado salvo
-
-function criarCirculos() {
-    circlesContainer.innerHTML = "";
-    for (let i = 0; i < totalCircles; i++) {
-        const c = document.createElement("div");
-        c.classList.add("circle");
-        if (circleStates[i]) c.classList.add("active");
-
-        c.addEventListener("click", () => {
-            circleStates[i] = !circleStates[i];
-            c.classList.toggle("active");
-        });
-
-        circlesContainer.appendChild(c);
-    }
-}
-
-/* Mostrar círculos somente na moldura1 */
-function atualizarVisibilidadeCirculos() {
-    if (moldura.src.includes("moldura1")) {
-        circlesContainer.style.display = "block";
-    } else {
-        circlesContainer.style.display = "none";
-    }
-}
-criarCirculos();
-atualizarVisibilidadeCirculos();
-
-/* ----------- FOTO FINAL ----------- */
-document.getElementById("fotoBtn").addEventListener("click", () => {
-    const video = document.getElementById("video");
-    const canvas = document.getElementById("canvas");
-    const ctx = canvas.getContext("2d");
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    // Aplicar moldura
-    const img = new Image();
-    img.src = moldura.src;
-    img.onload = () => {
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-        // Desenhar círculos na foto
-        desenharCirculosCanvas(ctx, canvas);
-
-        const link = document.createElement("a");
-        link.download = "foto.png";
-        link.href = canvas.toDataURL("image/png");
-        link.click();
-    };
+// ===========================
+// CÍRCULOS – clique
+// ===========================
+document.querySelectorAll(".circle").forEach(c => {
+  c.addEventListener("click", () => {
+    c.classList.toggle("filled");
+  });
 });
 
-/* ----------- DESENHAR CÍRCULOS NO CANVAS ----------- */
-function desenharCirculosCanvas(ctx, canvas) {
-    const baseX = canvas.width - 150; // mesma posição do layout
-    const startY = canvas.height / 2 - ((totalCircles * 35 + (totalCircles - 1) * 12) / 2);
 
-    for (let i = 0; i < totalCircles; i++) {
-        const y = startY + i * (35 + 12);
+// ===========================
+// ADICIONAR CÍRCULOS NA FOTO FINAL
+// (insira este bloco dentro da função onde você já salva a foto)
+// ===========================
+function drawCirclesInPhoto(ctx, canvas) {
+    document.querySelectorAll(".circle").forEach(c => {
+        const rect = c.getBoundingClientRect();
+        const base = canvas.getBoundingClientRect();
+        const x = rect.left - base.left;
+        const y = rect.top - base.top;
 
-        ctx.lineWidth = 6;
         ctx.strokeStyle = "white";
+        ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.arc(baseX, y, 18, 0, Math.PI * 2);
+        ctx.arc(x + 13, y + 13, 13, 0, Math.PI * 2);
         ctx.stroke();
 
-        if (circleStates[i]) {
+        if (c.classList.contains("filled")) {
             ctx.fillStyle = "white";
             ctx.beginPath();
-            ctx.arc(baseX, y, 18, 0, Math.PI * 2);
+            ctx.arc(x + 13, y + 13, 13, 0, Math.PI * 2);
             ctx.fill();
         }
-    }
+    });
 }
 
-/* ----------- VÍDEO ----------- */
-document.getElementById("videoBtn").addEventListener("click", () => {
-    chunks = [];
-    mediaRecorder = new MediaRecorder(stream, { mimeType: "video/webm" });
 
-    mediaRecorder.ondataavailable = e => chunks.push(e.data);
+// ===========================
+// ADICIONAR CÍRCULOS NO VÍDEO FINAL
+// (insira dentro do loop de renderização do vídeo final)
+// ===========================
+function drawCirclesInVideo(videoCtx, videoCanvas) {
+    document.querySelectorAll(".circle").forEach(c => {
+        const rect = c.getBoundingClientRect();
+        const base = videoCanvas.getBoundingClientRect();
+        const x = rect.left - base.left;
+        const y = rect.top - base.top;
 
-    mediaRecorder.onstop = async () => {
-        // Junta vídeo original
-        const blob = new Blob(chunks, { type: "video/webm" });
-        const url = URL.createObjectURL(blob);
+        videoCtx.strokeStyle = "white";
+        videoCtx.lineWidth = 3;
+        videoCtx.beginPath();
+        videoCtx.arc(x + 13, y + 13, 13, 0, Math.PI * 2);
+        videoCtx.stroke();
 
-        // Aplicar moldura + círculos em cada frame
-        processarVideoFinal(url);
-    };
-
-    mediaRecorder.start();
-    document.getElementById("stopBtn").disabled = false;
-});
-
-document.getElementById("stopBtn").addEventListener("click", () => {
-    mediaRecorder.stop();
-    document.getElementById("stopBtn").disabled = true;
-});
-
-/* ----------- PROCESSAR VÍDEO COM CÍRCULOS ----------- */
-async function processarVideoFinal(videoSrc) {
-    const video = document.createElement("video");
-    video.src = videoSrc;
-    await video.play();
-
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-
-    const outputChunks = [];
-    const outputStream = canvas.captureStream();
-    const recorder = new MediaRecorder(outputStream, { mimeType: "video/webm" });
-
-    recorder.ondataavailable = e => outputChunks.push(e.data);
-    recorder.start();
-
-    function frame() {
-        if (video.ended) {
-            recorder.stop();
-            salvarVideoFinal(outputChunks);
-            return;
+        if (c.classList.contains("filled")) {
+            videoCtx.fillStyle = "white";
+            videoCtx.beginPath();
+            videoCtx.arc(x + 13, y + 13, 13, 0, Math.PI * 2);
+            videoCtx.fill();
         }
-
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        // Moldura
-        ctx.drawImage(moldura, 0, 0, canvas.width, canvas.height);
-
-        // Círculos
-        desenharCirculosCanvas(ctx, canvas);
-
-        requestAnimationFrame(frame);
-    }
-
-    frame();
-}
-
-/* ----------- SALVAR VÍDEO ----------- */
-function salvarVideoFinal(chunksFinal) {
-    const blob = new Blob(chunksFinal, { type: "video/webm" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "video.webm";
-    link.click();
+    });
 }
 </script>
-
 </body>
 </html>
