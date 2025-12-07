@@ -1,266 +1,188 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport"
-      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Camera Customizada</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>Câmera Customizada</title>
 
-<style>
-    :root {
-        --accent: #25D366;
-        --record: #ff4444;
-    }
+    <style>
+        :root {
+            --accent: #ff5722;
+        }
 
-    body, html {
-        margin: 0;
-        padding: 0;
-        width: 100%;
-        height: 100%;
-        background: #000;
-        overflow: hidden;
-        font-family: Arial, sans-serif;
-    }
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
 
-    /* ---------------------- TELA COM A CAPA ---------------------- */
-    #startScreen {
-        position: fixed;
-        inset: 0;
-        background-image: url("capa.jpg");
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
+        /* 🔥 TELA INICIAL COM CAPA.JPG */
+        #startScreen {
+            position: fixed;
+            inset: 0;
+            background-image: url('capa.jpg');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #fff;
+            padding: 20px;
+            z-index: 9999;
+        }
 
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        z-index: 9999;
-    }
+        #startScreen h1 {
+            font-size: 24px;
+            margin: 10px 0;
+        }
 
-    #startScreen h1 {
-        color: #fff;
-        font-size: 26px;
-        text-shadow: 0 0 8px #000;
-        margin-bottom: 10px;
-    }
+        #startScreen p {
+            font-size: 16px;
+            opacity: 0.8;
+            margin-bottom: 20px;
+        }
 
-    #startScreen p {
-        color: #fff;
-        text-shadow: 0 0 8px #000;
-        margin-bottom: 25px;
-    }
+        #startButton {
+            background: var(--accent);
+            border: none;
+            color: white;
+            padding: 16px 32px;
+            font-size: 18px;
+            border-radius: 40px;
+            cursor: pointer;
+        }
 
-    #startButton {
-        background: #ff5a1f;
-        color: #fff;
-        padding: 15px 35px;
-        border-radius: 40px;
-        border: none;
-        font-size: 17px;
-        font-weight: bold;
-        cursor: pointer;
-    }
+        /* 🔥 ÁREA DA CÂMERA */
+        #cameraUI {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: black;
+        }
 
-    /* ---------------------- CAMADAS DA CÂMERA ---------------------- */
-    #camera {
-        width: 100vw;
-        height: 100vh;
-        object-fit: cover;
-        position: absolute;
-        top: 0;
-        left: 0;
-        z-index: 1;
-    }
+        #camera {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+        }
 
-    #canvasPreview,
-    #canvasFinal {
-        display: none;
-    }
+        /* Moldura */
+        #molduraImagePreview {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            object-fit: contain;
+        }
 
-    #molduraImagePreview {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        object-fit: contain;
-        pointer-events: none;
-        z-index: 5;
-    }
+        /* Botões */
+        .btn {
+            background: var(--accent);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 40px;
+            color: white;
+            font-size: 16px;
+        }
 
-    /* ---------------------- UI ---------------------- */
-    .ui-layer {
-        position: absolute;
-        inset: 0;
-        z-index: 10;
-        pointer-events: none;
-    }
+        .top-bar {
+            position: absolute;
+            top: 15px;
+            width: 100%;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: auto;
+        }
 
-    .ui-layer button {
-        pointer-events: all;
-    }
+        .controls-bottom {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
 
-    .top-bar {
-        width: 100%;
-        padding: 15px;
-        display: flex;
-        justify-content: space-between;
-        box-sizing: border-box;
-    }
-
-    .controls-bottom {
-        position: absolute;
-        bottom: 25px;
-        width: 100%;
-        display: flex;
-        justify-content: center;
-        gap: 30px;
-    }
-
-    /* ---------------------- CÍRCULOS DA MOLDURA1 ---------------------- */
-    #circlesPanel {
-        position: absolute;
-        top: 50%;
-        right: 1.2cm;   /* AJUSTE EXATO PEDIDO */
-        transform: translateY(-50%);
-        display: none; /* só aparece quando moldura1 ativa */
-        flex-direction: column;
-        gap: 15px;
-        z-index: 12;
-    }
-
-    .circle {
-        width: 30px;
-        height: 30px;
-        border-radius: 50%;
-        border: 3px solid white;
-        background: transparent;
-        cursor: pointer;
-    }
-
-    .circle.on {
-        background: white;
-    }
-
-</style>
+        #recordingTimer {
+            background: rgba(0,0,0,0.5);
+            padding: 8px 14px;
+            border-radius: 10px;
+        }
+    </style>
 </head>
 
 <body>
 
-<!-- ---------------------- TELA INICIAL COM CAPA ---------------------- -->
-<div id="startScreen">
-    <h1>Configuração de Câmera</h1>
-    <p>Permita acesso para iniciar.</p>
-    <button id="startButton">INICIAR CÂMERA</button>
-</div>
-
-<!-- ---------------------- CÂMERA ---------------------- -->
-<video id="camera" autoplay playsinline muted></video>
-<canvas id="canvasPreview"></canvas>
-<canvas id="canvasFinal"></canvas>
-<video id="videoPreview" playsinline controls></video>
-
-<img id="molduraImagePreview" src="" />
-
-<div class="flash" id="flash"></div>
-
-<div class="ui-layer" id="cameraUI" style="display:none;">
-    <div class="top-bar">
-        <button class="btn" id="switchBtn">🔄 Trocar Câmera</button>
-        <div id="recordingTimer" class="timer-badge">00:00</div>
+    <!-- 🔥 TELA INICIAL COM CAPA.JPG -->
+    <div id="startScreen">
+        <h1>Configuração de Câmera</h1>
+        <p>Permita acesso para iniciar.</p>
+        <button id="startButton">INICIAR CÂMERA</button>
     </div>
 
-    <div class="controls-bottom">
-        <button id="btnFoto">📸</button>
-        <button id="btnVideo">🎥</button>
+    <!-- 🔥 INTERFACE DA CÂMERA -->
+    <div id="cameraUI">
+        <video id="camera" autoplay playsinline muted></video>
+        <img id="molduraImagePreview" src="" />
+
+        <div class="top-bar">
+            <button class="btn" id="switchBtn">🔄 Trocar Câmera</button>
+            <div id="recordingTimer">00:00</div>
+        </div>
+
+        <div class="controls-bottom">
+            <button class="btn" id="captureBtn">📸 Capturar</button>
+        </div>
     </div>
-</div>
 
-<!-- ---------------------- CÍRCULOS LIGA/DESLIGA ---------------------- -->
-<div id="circlesPanel">
-    <div class="circle" data-id="1"></div>
-    <div class="circle" data-id="2"></div>
-    <div class="circle" data-id="3"></div>
-    <div class="circle" data-id="4"></div>
-    <div class="circle" data-id="5"></div>
-    <div class="circle" data-id="6"></div>
-    <div class="circle" data-id="7"></div>
-</div>
+    <script>
+        const startScreen = document.getElementById("startScreen");
+        const startButton = document.getElementById("startButton");
+        const cameraUI = document.getElementById("cameraUI");
+        const camera = document.getElementById("camera");
 
-<script>
-/* ========================== TELA INICIAL ========================== */
-const startScreen = document.getElementById("startScreen");
-const startButton = document.getElementById("startButton");
+        let usingFront = true;
+        let stream = null;
 
-startButton.addEventListener("click", () => {
-    startScreen.style.display = "none";
-    initCamera(); // SUA FUNÇÃO NORMAL DE ABRIR CAMERA
-});
+        async function startCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: usingFront ? "user" : "environment"
+                    },
+                    audio: false
+                });
 
-/* ========================== INICIALIZAÇÃO DA CÂMERA ========================== */
-/* Use exatamente sua função já existente */
-async function initCamera() {
-    const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user" }, audio: true
-    });
-
-    camera.srcObject = stream;
-    document.getElementById("cameraUI").style.display = "block";
-}
-
-/* ========================== CÍRCULOS LIGA/DESLIGA ========================== */
-const circlesPanel = document.getElementById("circlesPanel");
-const circles = document.querySelectorAll(".circle");
-
-circles.forEach(circle => {
-    circle.addEventListener("click", () => {
-        circle.classList.toggle("on");
-    });
-});
-
-/* ========================== EXIBIR CÍRCULOS SOMENTE NA MOLDURA1 ========================== */
-function ativarMoldura1() {
-    molduraImagePreview.src = "moldura1.png";
-    circlesPanel.style.display = "flex";
-}
-
-function desativarMolduras() {
-    molduraImagePreview.src = "";
-    circlesPanel.style.display = "none";
-}
-
-/* ========================== FOTO FINAL COM MOLDURA + CÍRCULOS ========================== */
-
-function salvarFotoFinal() {
-    const canvas = document.getElementById("canvasFinal");
-    const ctx = canvas.getContext("2d");
-
-    canvas.width = camera.videoWidth;
-    canvas.height = camera.videoHeight;
-
-    ctx.drawImage(camera, 0, 0, canvas.width, canvas.height);
-
-    if (molduraImagePreview.src) {
-        ctx.drawImage(molduraImagePreview, 0, 0, canvas.width, canvas.height);
-    }
-
-    circles.forEach(circle => {
-        if (circle.classList.contains("on")) {
-            ctx.fillStyle = "white";
-        } else {
-            ctx.lineWidth = 4;
-            ctx.strokeStyle = "white";
+                camera.srcObject = stream;
+            } catch (e) {
+                alert("Erro ao acessar câmera.");
+            }
         }
-    });
 
-    const link = document.createElement("a");
-    link.download = "foto.png";
-    link.href = canvas.toDataURL();
-    link.click();
-}
+        // 🔥 BOTÃO INICIAR CÂMERA
+        startButton.onclick = async () => {
+            startScreen.style.display = "none";
+            cameraUI.style.display = "block";
+            await startCamera();
+        };
 
-</script>
+        // 🔄 Trocar Câmera
+        document.getElementById("switchBtn").onclick = async () => {
+            usingFront = !usingFront;
+
+            if (stream) {
+                stream.getTracks().forEach(t => t.stop());
+            }
+
+            await startCamera();
+        };
+    </script>
 
 </body>
 </html>
