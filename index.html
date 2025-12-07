@@ -1,239 +1,198 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Camera com Moldura e Indicadores</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Câmera com Quadrado Liga/Desliga</title>
 
-    <style>
-        body {
-            margin: 0;
-            background: #000;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            color: white;
-            font-family: Arial, sans-serif;
-            overflow: hidden;
-        }
+<style>
+    body {
+        margin: 0;
+        overflow: hidden;
+        background: #000;
+    }
 
-        #cameraArea {
-            position: relative;
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: #000;
-        }
+    #container {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+    }
 
-        video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transform: scaleX(-1);
-        }
+    video, canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
 
-        #moldura1 {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            display: none;
-        }
+    /* Moldura */
+    #frame {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+    }
 
-        /* --- 7 CÍRCULOS LADO DIREITO --- */
-        #indicadores {
-            position: absolute;
-            right: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-            display: none;
-            gap: 12px;
-            display: flex;
-            flex-direction: column;
-            z-index: 20;
-        }
+    /* Quadrado liga/desliga */
+    #toggleSquare {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        width: 40px;
+        height: 40px;
+        border: 3px solid #fff;
+        border-radius: 4px;
+        background: transparent;
+        cursor: pointer;
+        z-index: 9999;
+    }
 
-        .ball {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            border: 4px solid white;
-            background: transparent;
-            cursor: pointer;
-        }
+    /* Quando ligado (preenchido) */
+    .active {
+        background: #fff !important;
+    }
 
-        .ball.ativa {
-            background: white;
-        }
+    button {
+        position: absolute;
+        bottom: 25px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 12px 20px;
+        border: none;
+        border-radius: 10px;
+        background: #25d366;
+        color: #fff;
+        font-size: 17px;
+        cursor: pointer;
+        z-index: 999;
+    }
 
-        /* Botões */
-        #botoes {
-            padding: 12px;
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            background: #111;
-        }
-
-        button {
-            padding: 10px 16px;
-            font-size: 16px;
-            border: none;
-            border-radius: 8px;
-            background: #25D366;
-            color: black;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        canvas {
-            display: none;
-        }
-    </style>
+</style>
 </head>
-
 <body>
 
-    <div id="cameraArea">
-        <video id="video" autoplay playsinline></video>
+<div id="container">
+    <video id="video" autoplay muted playsinline></video>
+    <img id="frame" src="moldura1.png">
 
-        <img id="moldura1" src="moldura1.png">
+    <!-- Quadrado ON/OFF -->
+    <div id="toggleSquare"></div>
 
-        <!-- Indicadores verticais -->
-        <div id="indicadores">
-            <div class="ball" data-id="0"></div>
-            <div class="ball" data-id="1"></div>
-            <div class="ball" data-id="2"></div>
-            <div class="ball" data-id="3"></div>
-            <div class="ball" data-id="4"></div>
-            <div class="ball" data-id="5"></div>
-            <div class="ball" data-id="6"></div>
-        </div>
-    </div>
+    <button id="capturePhoto">📸 Foto</button>
+    <button id="recordVideo" style="left: auto; right: 20px;">🎥 Vídeo</button>
+</div>
 
-    <div id="botoes">
-        <button onclick="ativarMoldura1()">Moldura 1</button>
-        <button onclick="tirarFoto()">📸 Foto</button>
-        <button onclick="gravarVideo()">🎥 Gravar</button>
-        <button onclick="pararGravacao()">⏹️ Parar</button>
-    </div>
+<canvas id="canvas" style="display:none;"></canvas>
 
-    <canvas id="canvas"></canvas>
+<script>
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const square = document.getElementById("toggleSquare");
+let squareActive = false;
 
-    <script>
-        const video = document.getElementById("video");
-        const canvas = document.getElementById("canvas");
-        const moldura1 = document.getElementById("moldura1");
-        const indicadores = document.getElementById("indicadores");
+// Liga / desliga quadrado
+square.addEventListener("click", () => {
+    squareActive = !squareActive;
 
-        let stream;
-        let gravador;
-        let partesVideo = [];
-        let molduraAtiva = null;
+    if (squareActive) square.classList.add("active");
+    else square.classList.remove("active");
+});
 
-        const estadoIndicadores = [false, false, false, false, false, false, false];
+// Iniciar câmera
+navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: true })
+.then(stream => {
+    video.srcObject = stream;
+})
+.catch(err => alert("Erro na câmera: " + err));
 
-        async function iniciarCamera() {
-            stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: "user" },
-                audio: true
-            });
+// Função para desenhar no canvas (foto e vídeo usam isso)
+function drawToCanvas() {
+    const ctx = canvas.getContext("2d");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
 
-            video.srcObject = stream;
-        }
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        iniciarCamera();
+    // Desenhar moldura
+    const frame = document.getElementById("frame");
+    ctx.drawImage(frame, 0, 0, canvas.width, canvas.height);
 
-        /* ----------- ATIVAR MOLDURA ----------- */
-        function ativarMoldura1() {
-            molduraAtiva = "m1";
-            moldura1.style.display = "block";
-            indicadores.style.display = "flex";
-        }
+    // Desenhar quadrado se estiver ligado
+    if (squareActive) {
+        const size = 40 * (canvas.width / window.innerWidth);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(canvas.width - size - 40, 40, size, size);
+    }
+}
 
-        /* ------ INTERAÇÃO DOS CÍRCULOS ------ */
-        document.querySelectorAll(".ball").forEach(ball => {
-            ball.addEventListener("click", () => {
-                const i = ball.dataset.id;
-                estadoIndicadores[i] = !estadoIndicadores[i];
-                ball.classList.toggle("ativa");
-            });
-        });
+// FOTO
+document.getElementById("capturePhoto").onclick = () => {
+    drawToCanvas();
+    const link = document.createElement("a");
+    link.download = "foto.png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+};
 
-        /* ---------- DESENHAR INDICADORES NO CANVAS ---------- */
-        function desenharIndicadores(ctx, largura, altura) {
-            const raio = 22;
-            const offsetX = largura - 50;
-            const primeiroY = altura / 2 - 6 * 22;
+// VÍDEO
+let mediaRecorder;
+let chunks = [];
+let recording = false;
 
-            for (let i = 0; i < 7; i++) {
-                const y = primeiroY + i * 55;
+document.getElementById("recordVideo").onclick = () => {
+    if (!recording) {
+        startRecording();
+    } else {
+        stopRecording();
+    }
+};
 
-                ctx.lineWidth = 5;
-                ctx.strokeStyle = "white";
-                ctx.beginPath();
-                ctx.arc(offsetX, y, raio, 0, 2 * Math.PI);
-                ctx.stroke();
+function startRecording() {
+    recording = true;
+    document.getElementById("recordVideo").innerText = "⏹ Parar";
 
-                if (estadoIndicadores[i]) {
-                    ctx.fillStyle = "white";
-                    ctx.beginPath();
-                    ctx.arc(offsetX, y, raio - 6, 0, 2 * Math.PI);
-                    ctx.fill();
-                }
-            }
-        }
+    // Canvas stream com 30 fps
+    const stream = canvas.captureStream(30);
+    mediaRecorder = new MediaRecorder(stream, {
+        mimeType: "video/webm;codecs=vp9"
+    });
 
-        /* ----------- FOTO ----------- */
-        function tirarFoto() {
-            const largura = video.videoWidth;
-            const altura = video.videoHeight;
+    mediaRecorder.ondataavailable = e => chunks.push(e.data);
 
-            canvas.width = largura;
-            canvas.height = altura;
-            const ctx = canvas.getContext("2d");
+    mediaRecorder.onstop = () => {
+        const blob = new Blob(chunks, { type: "video/webm" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "video.webm";
+        a.click();
+        chunks = [];
+    };
 
-            ctx.drawImage(video, 0, 0, largura, altura);
+    mediaRecorder.start();
 
-            if (molduraAtiva === "m1") ctx.drawImage(moldura1, 0, 0, largura, altura);
+    renderLoop();
+}
 
-            if (molduraAtiva === "m1") desenharIndicadores(ctx, largura, altura);
+function stopRecording() {
+    recording = false;
+    document.getElementById("recordVideo").innerText = "🎥 Vídeo";
 
-            const link = document.createElement("a");
-            link.download = "foto.png";
-            link.href = canvas.toDataURL("image/png");
-            link.click();
-        }
+    mediaRecorder.stop();
+}
 
-        /* ----------- GRAVAÇÃO DE VÍDEO ----------- */
-        function gravarVideo() {
-            partesVideo = [];
-            gravador = new MediaRecorder(stream, { mimeType: "video/mp4" });
-
-            gravador.ondataavailable = e => partesVideo.push(e.data);
-
-            gravador.onstop = async () => {
-                const blob = new Blob(partesVideo, { type: "video/mp4" });
-
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = "video.mp4";
-                document.body.appendChild(a);
-                a.click();
-                URL.revokeObjectURL(url);
-                a.remove();
-            };
-
-            gravador.start();
-        }
-
-        function pararGravacao() {
-            if (gravador && gravador.state === "recording") gravador.stop();
-        }
-    </script>
+// Renderização contínua para o vídeo
+function renderLoop() {
+    if (!recording) return;
+    drawToCanvas();
+    requestAnimationFrame(renderLoop);
+}
+</script>
 
 </body>
 </html>
